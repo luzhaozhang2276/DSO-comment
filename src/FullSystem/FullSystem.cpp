@@ -63,14 +63,9 @@ int FrameHessian::instanceCounter=0;
 int PointHessian::instanceCounter=0;
 int CalibHessian::instanceCounter=0;
 
-
-/********************************
- * @ function: 构造函数
- * 
- * @ param: 
- * 
- * @ note:
- *******************************/
+/**
+ * @brief 构造函数
+ */
 FullSystem::FullSystem()
 {
 
@@ -116,7 +111,6 @@ FullSystem::FullSystem()
 		variancesLog = new std::ofstream();
 		variancesLog->open("logs/variancesLog.txt", std::ios::trunc | std::ios::out);
 		variancesLog->precision(10);
-
 
 		nullspacesLog = new std::ofstream();
 		nullspacesLog->open("logs/nullspacesLog.txt", std::ios::trunc | std::ios::out);
@@ -360,18 +354,15 @@ Vec4 FullSystem::trackNewCoarse(FrameHessian* fh)
 		}
 	}
 
-
 	Vec3 flowVecs = Vec3(100,100,100);
 	SE3 lastF_2_fh = SE3();
 	AffLight aff_g2l = AffLight(0,0);
-
 
 	//! as long as maxResForImmediateAccept is not reached, I'll continue through the options.
 	//! I'll keep track of the so-far best achieved residual for each level in achievedRes. 
 	//! 把到目前为止最好的残差值作为每一层的阈值
 	//! If on a coarse level, tracking is WORSE than achievedRes, we will not continue to save time.
 	//! 粗层的能量值大, 也不继续优化了, 来节省时间
-	 
 
 	Vec5 achievedRes = Vec5::Constant(NAN);
 	bool haveOneGood = false;

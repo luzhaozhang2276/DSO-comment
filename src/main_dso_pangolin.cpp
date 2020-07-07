@@ -358,20 +358,15 @@ int main( int argc, char** argv )
 	// hook crtl+C.
 	boost::thread exThread = boost::thread(exitThread);
 
-
+    // 读取图像数据 DatasetReader
 	ImageFolderReader* reader = new ImageFolderReader(source,calib, gammaCalib, vignette);
 	reader->setGlobalCalibration();
-
-
 
 	if(setting_photometricCalibration > 0 && reader->getPhotometricGamma() == 0)
 	{
 		printf("ERROR: dont't have photometric calibation. Need to use commandline options mode=1 or mode=2 ");
 		exit(1);
 	}
-
-
-
 
 	int lstart=start;
 	int lend = end;
@@ -386,17 +381,10 @@ int main( int argc, char** argv )
 		linc = -1;
 	}
 
-
-
+    // FullSystem 线程初始化
 	FullSystem* fullSystem = new FullSystem();
 	fullSystem->setGammaFunction(reader->getPhotometricGamma());
 	fullSystem->linearizeOperation = (playbackSpeed==0);
-
-
-
-
-
-
 
     IOWrap::PangolinDSOViewer* viewer = 0;
 	if(!disableAllDisplay)
@@ -405,16 +393,13 @@ int main( int argc, char** argv )
         fullSystem->outputWrapper.push_back(viewer);
     }
 
-
-
     if(useSampleOutput)
         fullSystem->outputWrapper.push_back(new IOWrap::SampleOutputWrapper());
 
 
-
-
     // to make MacOS happy: run this in dedicated thread -- and use this one to run the GUI.
     std::thread runthread([&]() {
+        // 预加载时间戳
         std::vector<int> idsToPlay;
         std::vector<double> timesToPlayAt;
         for(int i=lstart;i>= 0 && i< reader->getNumImages() && linc*i < linc*lend;i+=linc)
@@ -432,7 +417,7 @@ int main( int argc, char** argv )
             }
         }
 
-
+        // 预加载数据集图片
         std::vector<ImageAndExposure*> preloadedImages;
         if(preload)
         {
@@ -449,7 +434,7 @@ int main( int argc, char** argv )
         clock_t started = clock();
         double sInitializerOffset=0;
 
-
+        /// 程序的主循环: 遍历处理每一帧图片
         for(int ii=0;ii<(int)idsToPlay.size(); ii++)
         {
             if(!fullSystem->initialized)	// if not initialized: reset start time.
@@ -468,8 +453,6 @@ int main( int argc, char** argv )
             else
                 img = reader->getImage(i);
 
-
-
             bool skipFrame=false;
             if(playbackSpeed!=0)
             {
@@ -485,15 +468,13 @@ int main( int argc, char** argv )
                 }
             }
 
-
-
-            if(!skipFrame) fullSystem->addActiveFrame(img, i);
-
-
-
+            /// 最重要的函数
+            if(!skipFrame)
+                fullSystem->addActiveFrame(img, i);
 
             delete img;
 
+            // 重启系统(初始化失败or重启请求)
             if(fullSystem->initFailed || setting_fullResetRequested)
             {
                 if(ii < 250 || setting_fullResetRequested)
@@ -516,6 +497,7 @@ int main( int argc, char** argv )
                 }
             }
 
+            // 跟丢,运行结束
             if(fullSystem->isLost)
             {
                     printf("LOST!!\n");
@@ -523,11 +505,12 @@ int main( int argc, char** argv )
             }
 
         }
+
+        // 运行输出结果
         fullSystem->blockUntilMappingIsFinished();
         clock_t ended = clock();
         struct timeval tv_end;
         gettimeofday(&tv_end, NULL);
-
 
         fullSystem->printResult("result.txt");
 
@@ -572,8 +555,6 @@ int main( int argc, char** argv )
 		ow->join();
 		delete ow;
 	}
-
-
 
 	printf("DELETE FULLSYSTEM!\n");
 	delete fullSystem;
